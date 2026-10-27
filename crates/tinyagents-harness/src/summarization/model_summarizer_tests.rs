@@ -432,15 +432,13 @@ assistant: There are 2.";
     messages.extend(tool_call_messages(json!({"query": "open issues"})));
     messages.push(Message::assistant("There are 2."));
 
-    for summarizer in [
-        |model| ModelSummarizer::new(model, "m"),
-        |model| ModelSummarizer::new(model, "m").with_tool_rendering(ToolRendering::Full),
-    ] {
+    for rendering in [None, Some(ToolRendering::Full)] {
         let model = Arc::new(ScriptedModel::replies(vec!["## Goal\nx"]));
-        summarizer(model.clone() as _)
-            .summarize(&messages)
-            .await
-            .unwrap();
+        let mut summarizer = ModelSummarizer::new(model.clone(), "m");
+        if let Some(rendering) = rendering {
+            summarizer = summarizer.with_tool_rendering(rendering);
+        }
+        summarizer.summarize(&messages).await.unwrap();
         let request = &model.requests()[0];
         let sent = request.messages[1].text();
         assert!(
