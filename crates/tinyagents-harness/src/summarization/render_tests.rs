@@ -118,3 +118,12 @@ fn long_marker_arguments_are_cut_on_a_char_boundary_with_an_ellipsis() {
     let kept = shown.trim_end_matches('…');
     assert!(arguments.to_string().starts_with(kept), "{shown}");
 }
+
+#[test]
+fn markers_leave_out_an_assistant_turn_with_neither_prose_nor_calls() {
+    let empty = assistant(None, Vec::new());
+    assert_eq!(
+        render_message_for_summary_with(&empty, ToolRendering::Markers),
+        None
+    );
+}
