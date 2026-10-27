@@ -184,13 +184,8 @@ pub fn render_message_for_summary_with(
                     shorten(&call.arguments.to_string(), MARKER_ARGUMENT_CHARS)
                 )
             });
-            Some(
-                prose
-                    .into_iter()
-                    .chain(markers)
-                    .collect::<Vec<_>>()
-                    .join("\n"),
-            )
+            let lines = prose.into_iter().chain(markers).collect::<Vec<_>>();
+            (!lines.is_empty()).then(|| lines.join("\n"))
         }
         (ToolRendering::Markers, _) => Some(render_message_for_summary(message)),
     }
