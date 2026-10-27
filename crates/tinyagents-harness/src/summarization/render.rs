@@ -25,6 +25,8 @@
 
 use tinyinference_llm::message::{ContentBlock, Message};
 
+use super::ToolRendering;
+
 /// Maximum characters rendered for a single tool-call argument blob or tool
 /// result body before it is elided.
 ///
@@ -33,6 +35,10 @@ use tinyinference_llm::message::{ContentBlock, Message};
 /// row counts) intact, which is what a later turn usually needs to refer back
 /// to.
 const MAX_RENDERED_PAYLOAD_CHARS: usize = 2_000;
+
+/// Most characters of a tool call's arguments shown in a
+/// [`ToolRendering::Markers`] line, the ellipsis included.
+const MARKER_ARGUMENT_CHARS: usize = 120;
 
 /// The role label used when rendering a message for summarization.
 fn role_label(message: &Message) -> &'static str {
@@ -147,3 +153,16 @@ pub fn render_message_for_summary(message: &Message) -> String {
 
     format!("{}: {}", role_label(message), parts.join(" "))
 }
+
+/// Renders a message the way `rendering` asks, or `None` when the mode leaves
+/// it out.
+pub fn render_message_for_summary_with(
+    message: &Message,
+    _rendering: ToolRendering,
+) -> Option<String> {
+    Some(render_message_for_summary(message))
+}
+
+#[cfg(test)]
+#[path = "render_tests.rs"]
+mod tests;
