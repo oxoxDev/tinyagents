@@ -3763,6 +3763,49 @@ async fn unrepairable_arguments_are_answered_with_an_actionable_error() {
     );
 }
 
+/// With the host's `ArgRecoveryMiddleware` installed (as the host stack runs
+/// it), an unrepairable call is not executed and is answered with the
+/// actionable corrective word for word: the parse failure plus the re-send
+/// instruction the model can follow. Pins the wording of
+/// `unparseable_tool_call_message`, not which layer produces it.
+#[tokio::test]
+async fn arg_recovery_keeps_the_actionable_error_text_for_unrepairable_arguments() {
+    let tool = Arc::new(crate::testkit::FakeTool::returning("lookup", "found it"));
+    let mut harness: AgentHarness<()> = AgentHarness::new();
+    harness.with_model_resolver(Arc::new(crate::host::FixedModelResolver::named(
+        "mock",
+        Arc::new(MockModel::with_responses(vec![
+            invalid_tool_call_response("call-x", "lookup", "{\"query\": [1 2]}"),
+            text_response("gave up", 1, 1),
+        ])),
+    )));
+    harness.register_tool(tool.clone());
+    harness.push_middleware(Arc::new(crate::middleware::ArgRecoveryMiddleware::new(
+        Vec::new(),
+    )));
+
+    let run = harness
+        .invoke_in_context(
+            &(),
+            RunContext::new(RunConfig::new("arg-recovery-unrepairable"), ()),
+            vec![Message::user("lookup")],
+        )
+        .await
+        .expect("unparseable arguments do not fail the run");
+
+    assert!(tool.calls().is_empty(), "the tool must not run");
+    let transcript = format!("{:?}", run.messages);
+    assert!(
+        transcript.contains("Tool call `lookup` was not run: its arguments are not valid JSON"),
+        "{transcript}"
+    );
+    assert!(
+        transcript
+            .contains("Re-send it as well-formed JSON that matches the tool's argument schema"),
+        "{transcript}"
+    );
+}
+
 #[tokio::test]
 async fn structured_output_is_extracted() {
     let mut harness: AgentHarness<()> = AgentHarness::new();
