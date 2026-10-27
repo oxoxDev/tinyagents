@@ -14,8 +14,7 @@ use tinyinference_llm::usage::Usage;
 use super::{
     DEFAULT_SUMMARIZE_KEEP_LAST, DEFAULT_SUMMARIZE_THRESHOLD_FRACTION,
     FaultTolerantCachingSummarizer, ModelSummarizer, SummarizationPolicy, Summarizer,
-    SummaryRecord, SummaryRequest, ToolRendering, summarization_policy,
-    summarization_policy_with,
+    SummaryRecord, SummaryRequest, ToolRendering, summarization_policy, summarization_policy_with,
 };
 use crate::error::{Result, TinyAgentsError};
 use crate::testkit::ScriptedModel;
@@ -458,7 +457,10 @@ async fn markers_send_the_conversation_without_tool_output() {
     summarizer.summarize(&cron_exchange()).await.unwrap();
 
     let sent = model.requests()[0].messages[1].text();
-    assert!(sent.contains("user: remind me to water the plants"), "{sent}");
+    assert!(
+        sent.contains("user: remind me to water the plants"),
+        "{sent}"
+    );
     assert!(
         sent.contains("assistant: Done, I will remind you at 9 every morning."),
         "{sent}"

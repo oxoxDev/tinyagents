@@ -154,13 +154,58 @@ pub fn render_message_for_summary(message: &Message) -> String {
     format!("{}: {}", role_label(message), parts.join(" "))
 }
 
-/// Renders a message the way `rendering` asks, or `None` when the mode leaves
-/// it out.
+/// Renders a single message for a summary transcript in the given
+/// [`ToolRendering`] mode, or `None` when the mode leaves the message out.
+///
+/// [`ToolRendering::Full`] is exactly [`render_message_for_summary`].
+/// [`ToolRendering::Markers`] renders system, user, assistant and custom
+/// content the same way, but:
+///
+/// - each assistant tool call becomes its own line,
+///   `[used <name>: <arguments>]`, without its call id and with the arguments'
+///   JSON cut to 120 characters (an ellipsis marks the cut);
+/// - an assistant turn that only called tools is just those lines;
+/// - a tool result ([`Message::Tool`]) is omitted: `None`.
 pub fn render_message_for_summary_with(
     message: &Message,
-    _rendering: ToolRendering,
+    rendering: ToolRendering,
 ) -> Option<String> {
-    Some(render_message_for_summary(message))
+    match (rendering, message) {
+        (ToolRendering::Full, _) => Some(render_message_for_summary(message)),
+        (ToolRendering::Markers, Message::Tool(_)) => None,
+        (ToolRendering::Markers, Message::Assistant(assistant)) => {
+            let parts = render_content(&assistant.content);
+            let prose = (!parts.is_empty())
+                .then(|| format!("{}: {}", role_label(message), parts.join(" ")));
+            let markers = assistant.tool_calls.iter().map(|call| {
+                format!(
+                    "[used {}: {}]",
+                    call.name,
+                    shorten(&call.arguments.to_string(), MARKER_ARGUMENT_CHARS)
+                )
+            });
+            Some(
+                prose
+                    .into_iter()
+                    .chain(markers)
+                    .collect::<Vec<_>>()
+                    .join("\n"),
+            )
+        }
+        (ToolRendering::Markers, _) => Some(render_message_for_summary(message)),
+    }
+}
+
+/// Cuts `text` to at most `max_chars` characters, the last of them an
+/// ellipsis when anything was dropped. Counts characters, so a cut never
+/// splits one.
+fn shorten(text: &str, max_chars: usize) -> String {
+    if text.chars().count() <= max_chars {
+        return text.to_string();
+    }
+    let mut kept: String = text.chars().take(max_chars.saturating_sub(1)).collect();
+    kept.push('…');
+    kept
 }
 
 #[cfg(test)]

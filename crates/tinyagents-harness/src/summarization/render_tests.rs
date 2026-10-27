@@ -11,7 +11,10 @@ use tinyinference_llm::tool::ToolCall;
 fn assistant(text: Option<&str>, calls: Vec<ToolCall>) -> Message {
     Message::Assistant(AssistantMessage {
         id: None,
-        content: text.map(|t| ContentBlock::Text(t.into())).into_iter().collect(),
+        content: text
+            .map(|t| ContentBlock::Text(t.into()))
+            .into_iter()
+            .collect(),
         tool_calls: calls,
         usage: None,
         origin: None,
@@ -71,15 +74,16 @@ fn markers_render_each_call_on_its_own_line_without_its_id() {
     );
     assert_eq!(
         render_message_for_summary_with(&message, ToolRendering::Markers).as_deref(),
-        Some(
-            "assistant: on it\n[used cron: {\"at\":\"9am\"}]\n[used search: {\"q\":\"news\"}]"
-        )
+        Some("assistant: on it\n[used cron: {\"at\":\"9am\"}]\n[used search: {\"q\":\"news\"}]")
     );
 }
 
 #[test]
 fn markers_still_render_an_assistant_turn_that_only_called_tools() {
-    let message = assistant(None, vec![ToolCall::new("c1", "cron", json!({"at": "9am"}))]);
+    let message = assistant(
+        None,
+        vec![ToolCall::new("c1", "cron", json!({"at": "9am"}))],
+    );
     assert_eq!(
         render_message_for_summary_with(&message, ToolRendering::Markers).as_deref(),
         Some("[used cron: {\"at\":\"9am\"}]")
