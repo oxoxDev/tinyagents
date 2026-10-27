@@ -165,7 +165,8 @@ pub fn render_message_for_summary(message: &Message) -> String {
 ///   `[used <name>: <arguments>]`, without its call id and with the arguments'
 ///   JSON cut to 120 characters (an ellipsis marks the cut);
 /// - an assistant turn that only called tools is just those lines;
-/// - a tool result ([`Message::Tool`]) is omitted: `None`.
+/// - a tool result ([`Message::Tool`]) is omitted: `None`;
+/// - so is an assistant turn with neither prose nor tool calls.
 pub fn render_message_for_summary_with(
     message: &Message,
     rendering: ToolRendering,
