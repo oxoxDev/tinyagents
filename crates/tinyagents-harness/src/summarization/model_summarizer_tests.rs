@@ -360,6 +360,23 @@ async fn pending_work_is_handed_on_as_in_progress_not_stale() {
     assert!(prompt.contains("already answered"), "{prompt}");
 }
 
+/// A compaction must not cost what the user told the assistant about
+/// themselves: the checkpoint keeps those facts, and the commitments the
+/// assistant made, in sections of their own.
+#[tokio::test]
+async fn the_checkpoint_keeps_facts_about_the_user_and_commitments() {
+    let model = Arc::new(ScriptedModel::replies(vec!["## Goal\nx"]));
+    let summarizer = ModelSummarizer::new(model.clone(), "m");
+    summarizer
+        .summarize(&[Message::user("I live in Pune"), Message::assistant("noted")])
+        .await
+        .unwrap();
+
+    let prompt = model.requests()[0].messages[0].text();
+    assert!(prompt.contains("## About the User"), "{prompt}");
+    assert!(prompt.contains("## Commitments"), "{prompt}");
+}
+
 #[tokio::test]
 async fn a_turn_prefix_request_uses_its_own_prompt() {
     let model = Arc::new(ScriptedModel::replies(vec![
